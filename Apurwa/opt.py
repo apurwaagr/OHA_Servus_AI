@@ -8,6 +8,7 @@ import csv
 import json
 import random
 import math
+import os
 from datetime import datetime, timedelta
 from collections import defaultdict
 from dataclasses import dataclass
@@ -80,8 +81,14 @@ class SmartBusOptimizer:
         self.optimized_schedules = {}
         self.route_metrics = {}
         self.recommendations = []
+        
+        print("📊 Parsing passenger data...")
         self.parse_real_data()
+        print(f"   ✅ Loaded {len(self.stops)} bus stops across {len(self.routes)} routes")
+        
+        print("⏰ Initializing current schedules...")
         self._initialize_current_schedules()
+        print("   ✅ Current schedules initialized")
     
     def parse_real_data(self):
         """Parse the comprehensive passenger data"""
@@ -391,6 +398,7 @@ class SmartBusOptimizer:
     
     def generate_recommendations(self):
         """Generate specific recommendations for each route"""
+        print("🧠 Generating optimization recommendations...")
         self.recommendations = []
         
         for route_num in self.routes.keys():
@@ -448,10 +456,12 @@ class SmartBusOptimizer:
                 'cost_impact': trips_change * 25,  # €25 per trip
                 'passenger_impact': metrics.passengers_per_day * (1 + (trips_change / current['daily_trips']) * 0.3) if current['daily_trips'] > 0 else 0
             })
+        
+        print(f"   ✅ Generated {len(self.recommendations)} recommendations")
     
     def print_before_after_analysis(self):
         """Print comprehensive before/after comparison"""
-        print("🚌" * 30)
+        print("\n" + "🚌" * 30)
         print("        NEUMARKT BUS NETWORK: BEFORE vs AFTER OPTIMIZATION")
         print("🚌" * 30)
         
@@ -587,118 +597,128 @@ class SmartBusOptimizer:
     
     def export_comprehensive_comparison(self, filename_base="neumarkt_optimization"):
         """Export detailed before/after comparison to CSV files"""
+        print(f"\n📁 Exporting comprehensive analysis to CSV files...")
         
-        # 1. Route comparison summary
-        with open(f"{filename_base}_route_comparison.csv", 'w', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                'route', 'recommendation', 'current_passengers', 'current_peak_freq', 'current_offpeak_freq', 
-                'current_daily_trips', 'optimized_peak_freq', 'optimized_offpeak_freq', 'optimized_daily_trips',
-                'frequency_change_peak_pct', 'frequency_change_offpeak_pct', 'trips_change', 
-                'cost_impact_eur', 'occupancy_rate', 'cost_per_passenger', 'efficiency_score'
-            ])
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs("optimization_results", exist_ok=True)
+            base_path = f"optimization_results/{filename_base}"
             
-            for rec in self.recommendations:
-                route_num = rec['route']
-                current = self.current_schedules[route_num]
-                optimized = self.optimized_schedules[route_num]
-                metrics = rec['current_metrics']
+            # 1. Route comparison summary
+            with open(f"{base_path}_route_comparison.csv", 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    'route', 'recommendation', 'current_passengers', 'current_peak_freq', 'current_offpeak_freq', 
+                    'current_daily_trips', 'optimized_peak_freq', 'optimized_offpeak_freq', 'optimized_daily_trips',
+                    'frequency_change_peak_pct', 'frequency_change_offpeak_pct', 'trips_change', 
+                    'cost_impact_eur', 'occupancy_rate', 'cost_per_passenger', 'efficiency_score'
+                ])
+                
+                for rec in self.recommendations:
+                    route_num = rec['route']
+                    current = self.current_schedules[route_num]
+                    optimized = self.optimized_schedules[route_num]
+                    metrics = rec['current_metrics']
+                    
+                    writer.writerow([
+                        route_num, rec['action'], metrics.passengers_per_day,
+                        current['frequency_peak'], current['frequency_offpeak'], current['daily_trips'],
+                        optimized['frequency_peak'], optimized['frequency_offpeak'], optimized['daily_trips'],
+                        rec['frequency_changes']['peak_change_percent'],
+                        rec['frequency_changes']['offpeak_change_percent'],
+                        rec['frequency_changes']['trips_change'],
+                        rec['cost_impact'], metrics.occupancy_rate, metrics.cost_per_passenger,
+                        metrics.efficiency_score
+                    ])
+            
+            # 2. Detailed recommendations
+            with open(f"{base_path}_recommendations.csv", 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    'route', 'recommendation_type', 'action', 'reasoning', 'priority',
+                    'implementation_cost', 'expected_ridership_change', 'payback_period_days'
+                ])
+                
+                for rec in self.recommendations:
+                    # Calculate priority based on passenger impact and cost
+                    if rec['current_metrics'].passengers_per_day > 200:
+                        priority = "High"
+                    elif rec['current_metrics'].passengers_per_day > 50:
+                        priority = "Medium"
+                    else:
+                        priority = "Low"
+                    
+                    # Estimate payback period
+                    daily_revenue_change = (rec['passenger_impact'] - rec['current_metrics'].passengers_per_day) * 2.5
+                    payback_days = abs(rec['cost_impact'] / daily_revenue_change) if daily_revenue_change != 0 else float('inf')
+                    
+                    writer.writerow([
+                        rec['route'], rec['type'], rec['action'], rec['reason'], priority,
+                        abs(rec['cost_impact']), 
+                        rec['passenger_impact'] - rec['current_metrics'].passengers_per_day,
+                        payback_days if payback_days != float('inf') else 'N/A'
+                    ])
+            
+            # 3. Stop analysis with route recommendations
+            with open(f"{base_path}_stop_analysis.csv", 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    'stop_name', 'total_passengers', 'weekday_passengers', 'zone', 'priority',
+                    'current_routes', 'route_count', 'demand_pattern', 'service_recommendation'
+                ])
+                
+                for stop in sorted(self.stops, key=lambda x: x.passengers_total, reverse=True):
+                    # Generate service recommendation for stop
+                    if len(stop.route_numbers) == 1 and stop.passengers_total > 50:
+                        service_rec = "Add alternative route"
+                    elif stop.passengers_total > 100 and stop.zone == "core":
+                        service_rec = "Increase frequency on all routes"
+                    elif stop.passengers_total < 5:
+                        service_rec = "Consider stop consolidation"
+                    else:
+                        service_rec = "Maintain current service"
+                    
+                    writer.writerow([
+                        stop.name, stop.passengers_total, stop.passengers_weekday,
+                        stop.zone, stop.priority, '|'.join(stop.route_numbers),
+                        len(stop.route_numbers), stop.demand_pattern, service_rec
+                    ])
+            
+            # 4. Financial impact summary
+            with open(f"{base_path}_financial_impact.csv", 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    'category', 'current_daily_cost', 'optimized_daily_cost', 'daily_change',
+                    'annual_change', 'current_revenue_potential', 'optimized_revenue_potential',
+                    'net_annual_impact'
+                ])
+                
+                current_cost = sum(s['daily_trips'] for s in self.current_schedules.values()) * 25
+                optimized_cost = sum(s['daily_trips'] for s in self.optimized_schedules.values()) * 25
+                daily_cost_change = optimized_cost - current_cost
+                annual_cost_change = daily_cost_change * 365
+                
+                current_revenue = sum(stop.passengers_total for stop in self.stops) * 2.5
+                optimized_revenue = sum(rec['passenger_impact'] for rec in self.recommendations) * 2.5
+                revenue_change = optimized_revenue - current_revenue
+                annual_revenue_change = revenue_change * 365
+                
+                net_annual_impact = annual_revenue_change - annual_cost_change
                 
                 writer.writerow([
-                    route_num, rec['action'], metrics.passengers_per_day,
-                    current['frequency_peak'], current['frequency_offpeak'], current['daily_trips'],
-                    optimized['frequency_peak'], optimized['frequency_offpeak'], optimized['daily_trips'],
-                    rec['frequency_changes']['peak_change_percent'],
-                    rec['frequency_changes']['offpeak_change_percent'],
-                    rec['frequency_changes']['trips_change'],
-                    rec['cost_impact'], metrics.occupancy_rate, metrics.cost_per_passenger,
-                    metrics.efficiency_score
+                    'Total Network', current_cost, optimized_cost, daily_cost_change,
+                    annual_cost_change, current_revenue, optimized_revenue, net_annual_impact
                 ])
-        
-        # 2. Detailed recommendations
-        with open(f"{filename_base}_recommendations.csv", 'w', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                'route', 'recommendation_type', 'action', 'reasoning', 'priority',
-                'implementation_cost', 'expected_ridership_change', 'payback_period_days'
-            ])
             
-            for rec in self.recommendations:
-                # Calculate priority based on passenger impact and cost
-                if rec['current_metrics'].passengers_per_day > 200:
-                    priority = "High"
-                elif rec['current_metrics'].passengers_per_day > 50:
-                    priority = "Medium"
-                else:
-                    priority = "Low"
-                
-                # Estimate payback period
-                daily_revenue_change = (rec['passenger_impact'] - rec['current_metrics'].passengers_per_day) * 2.5
-                payback_days = abs(rec['cost_impact'] / daily_revenue_change) if daily_revenue_change != 0 else float('inf')
-                
-                writer.writerow([
-                    rec['route'], rec['type'], rec['action'], rec['reason'], priority,
-                    abs(rec['cost_impact']), 
-                    rec['passenger_impact'] - rec['current_metrics'].passengers_per_day,
-                    payback_days if payback_days != float('inf') else 'N/A'
-                ])
-        
-        # 3. Stop analysis with route recommendations
-        with open(f"{filename_base}_stop_analysis.csv", 'w', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                'stop_name', 'total_passengers', 'weekday_passengers', 'zone', 'priority',
-                'current_routes', 'route_count', 'demand_pattern', 'service_recommendation'
-            ])
+            print(f"   ✅ Files exported successfully:")
+            print(f"      • {base_path}_route_comparison.csv - Before/after route comparison")
+            print(f"      • {base_path}_recommendations.csv - Detailed recommendations with priorities")
+            print(f"      • {base_path}_stop_analysis.csv - Individual stop analysis")
+            print(f"      • {base_path}_financial_impact.csv - Cost-benefit analysis")
             
-            for stop in sorted(self.stops, key=lambda x: x.passengers_total, reverse=True):
-                # Generate service recommendation for stop
-                if len(stop.route_numbers) == 1 and stop.passengers_total > 50:
-                    service_rec = "Add alternative route"
-                elif stop.passengers_total > 100 and stop.zone == "core":
-                    service_rec = "Increase frequency on all routes"
-                elif stop.passengers_total < 5:
-                    service_rec = "Consider stop consolidation"
-                else:
-                    service_rec = "Maintain current service"
-                
-                writer.writerow([
-                    stop.name, stop.passengers_total, stop.passengers_weekday,
-                    stop.zone, stop.priority, '|'.join(stop.route_numbers),
-                    len(stop.route_numbers), stop.demand_pattern, service_rec
-                ])
-        
-        # 4. Financial impact summary
-        with open(f"{filename_base}_financial_impact.csv", 'w', newline='', encoding='utf-8') as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                'category', 'current_daily_cost', 'optimized_daily_cost', 'daily_change',
-                'annual_change', 'current_revenue_potential', 'optimized_revenue_potential',
-                'net_annual_impact'
-            ])
-            
-            current_cost = sum(s['daily_trips'] for s in self.current_schedules.values()) * 25
-            optimized_cost = sum(s['daily_trips'] for s in self.optimized_schedules.values()) * 25
-            daily_cost_change = optimized_cost - current_cost
-            annual_cost_change = daily_cost_change * 365
-            
-            current_revenue = sum(stop.passengers_total for stop in self.stops) * 2.5
-            optimized_revenue = sum(rec['passenger_impact'] for rec in self.recommendations) * 2.5
-            revenue_change = optimized_revenue - current_revenue
-            annual_revenue_change = revenue_change * 365
-            
-            net_annual_impact = annual_revenue_change - annual_cost_change
-            
-            writer.writerow([
-                'Total Network', current_cost, optimized_cost, daily_cost_change,
-                annual_cost_change, current_revenue, optimized_revenue, net_annual_impact
-            ])
-        
-        print(f"\n📁 COMPREHENSIVE ANALYSIS EXPORTED:")
-        print(f"   • {filename_base}_route_comparison.csv - Before/after route comparison")
-        print(f"   • {filename_base}_recommendations.csv - Detailed recommendations with priorities")
-        print(f"   • {filename_base}_stop_analysis.csv - Individual stop analysis")
-        print(f"   • {filename_base}_financial_impact.csv - Cost-benefit analysis")
+        except Exception as e:
+            print(f"   ❌ Error exporting files: {e}")
+            print(f"   📝 Make sure you have write permissions in the current directory")
     
     def generate_implementation_plan(self):
         """Generate a phased implementation plan"""
@@ -737,22 +757,36 @@ class SmartBusOptimizer:
                     print(f"      Cost: €{abs(rec['cost_impact']):,.0f} | Passenger Change: {rec['passenger_impact'] - rec['current_metrics'].passengers_per_day:+.0f}")
 
 def main():
+    """Main execution function"""
     print("🚀 Starting Advanced Neumarkt Bus Network Optimization...")
     print("   Analyzing current vs. optimized schedules with detailed recommendations")
     
-    optimizer = SmartBusOptimizer()
-    optimizer.generate_recommendations()
-    recommendations = optimizer.print_before_after_analysis()
-    optimizer.export_comprehensive_comparison()
-    optimizer.generate_implementation_plan()
-    
-    print(f"\n✅ OPTIMIZATION ANALYSIS COMPLETE!")
-    print(f"📊 Analyzed {len(optimizer.routes)} routes with {len(optimizer.stops)} stops")
-    print(f"🎯 Generated {len(recommendations)} specific recommendations")
-    print(f"💰 Total network optimization potential identified")
-    print(f"📂 Detailed reports exported to CSV files")
-    
-    return optimizer
+    try:
+        optimizer = SmartBusOptimizer()
+        optimizer.generate_recommendations()
+        recommendations = optimizer.print_before_after_analysis()
+        optimizer.export_comprehensive_comparison()
+        optimizer.generate_implementation_plan()
+        
+        print(f"\n✅ OPTIMIZATION ANALYSIS COMPLETE!")
+        print(f"📊 Analyzed {len(optimizer.routes)} routes with {len(optimizer.stops)} stops")
+        print(f"🎯 Generated {len(recommendations)} specific recommendations")
+        print(f"💰 Total network optimization potential identified")
+        print(f"📂 Detailed reports exported to CSV files in 'optimization_results' folder")
+        
+        return optimizer
+        
+    except Exception as e:
+        print(f"\n❌ Error during optimization: {e}")
+        print(f"🔍 Please check the error message above for details")
+        import traceback
+        traceback.print_exc()
+        return None
 
 if __name__ == "__main__":
-    main()
+    result = main()
+    if result:
+        print(f"\n🎉 Optimization completed successfully!")
+        print(f"📁 Check the 'optimization_results' folder for detailed CSV reports")
+    else:
+        print(f"\n⚠️ Optimization failed - please check the error messages above")
