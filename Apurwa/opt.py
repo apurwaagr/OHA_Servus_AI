@@ -343,43 +343,61 @@ class SmartBusOptimizer:
         )
     
     def optimize_route_frequency(self, route_num):
-        """Determine optimal frequency based on multiple factors"""
+        """Determine optimal frequency based on multiple factors with cost-conscious optimization"""
         metrics = self.calculate_route_metrics(route_num)
         stops = self.routes[route_num]
+        current = self.current_schedules[route_num]
         
-        # Factor 1: Passenger demand
-        demand_score = min(metrics.passengers_per_day / 100, 3.0)  # Cap at 3x
+        # Calculate target occupancy (ideal range: 60-80%)
+        target_occupancy = 0.70
+        current_occupancy = metrics.occupancy_rate
         
-        # Factor 2: Zone importance (core areas need better service)
+        # Determine if we need more or fewer trips based on occupancy
+        if current_occupancy > 0.85:  # Overcrowded - need more frequency
+            frequency_adjustment = 0.7  # Reduce frequency intervals (increase service)
+            justification = "overcrowded"
+        elif current_occupancy < 0.40:  # Underutilized - need fewer trips
+            frequency_adjustment = 1.4  # Increase frequency intervals (reduce service)
+            justification = "underutilized"
+        elif current_occupancy < 0.20:  # Very low usage
+            frequency_adjustment = 2.0  # Significantly reduce service
+            justification = "very_low_usage"
+        else:  # Acceptable range
+            frequency_adjustment = 1.0
+            justification = "optimal_range"
+        
+        # Apply passenger demand weighting
+        if metrics.passengers_per_day < 50:
+            frequency_adjustment *= 1.5  # Further reduce service for low demand
+        elif metrics.passengers_per_day > 300:
+            frequency_adjustment *= 0.9  # Slightly improve service for high demand
+        
+        # Zone-based adjustments (core areas get slightly better service)
         core_stops = len([s for s in stops if s.zone == "core"])
-        zone_score = 1.0 + (core_stops / len(stops)) * 0.5 if stops else 1.0
+        if stops and core_stops / len(stops) > 0.5:  # Majority core stops
+            frequency_adjustment *= 0.95  # Slightly better service
         
-        # Factor 3: Current occupancy (if too high, increase frequency)
-        occupancy_score = 1.0 + max(0, metrics.occupancy_rate - 0.7) * 2
+        # Cost efficiency check - don't make expensive routes even more expensive
+        if metrics.cost_per_passenger > 3.0:  # High cost per passenger
+            frequency_adjustment = max(frequency_adjustment, 1.2)  # Force service reduction
         
-        # Factor 4: Network connectivity
-        connectivity_score = 1.0 + (len(stops) / 20) * 0.3  # More stops = higher connectivity
+        # Apply adjustments to current frequencies
+        optimal_peak = max(5, min(120, int(current['frequency_peak'] * frequency_adjustment)))
+        optimal_offpeak = max(10, min(120, int(current['frequency_offpeak'] * frequency_adjustment)))
         
-        # Factor 5: Cost efficiency
-        cost_score = max(0.5, 2.0 - (metrics.cost_per_passenger / 5))  # Lower cost = higher score
-        
-        # Combined optimization score
-        optimization_multiplier = (demand_score * zone_score * occupancy_score * connectivity_score * cost_score) / 5
-        
-        # Base frequencies
-        base_peak, base_offpeak = 20, 40
-        
-        # Apply optimization
-        optimal_peak = max(5, int(base_peak / optimization_multiplier))
-        optimal_offpeak = max(10, int(base_offpeak / optimization_multiplier))
-        
-        # Determine service hours based on demand
-        if metrics.passengers_per_day > 200:
-            service_hours = (5, 23)
-        elif metrics.passengers_per_day > 50:
-            service_hours = (6, 22)
+        # Determine service hours - reduce for very low demand routes
+        if metrics.passengers_per_day < 30:
+            service_hours = (7, 20)  # Shorter service hours
+        elif metrics.passengers_per_day > 500:
+            service_hours = (5, 23)  # Extended hours for high demand
         else:
-            service_hours = (7, 21)
+            service_hours = current['service_hours']  # Keep current hours
+        
+        # Special handling for very low ridership routes
+        if metrics.passengers_per_day < 20:
+            optimal_peak = min(optimal_peak, 60)    # Max every hour in peak
+            optimal_offpeak = min(optimal_offpeak, 120)  # Max every 2 hours off-peak
+            service_hours = (8, 18)  # Very limited hours
         
         return {
             'frequency_peak': optimal_peak,
@@ -387,18 +405,18 @@ class SmartBusOptimizer:
             'service_hours': service_hours,
             'daily_trips': self._calculate_trips(optimal_peak, optimal_offpeak, service_hours),
             'optimization_factors': {
-                'demand_score': demand_score,
-                'zone_score': zone_score,
-                'occupancy_score': occupancy_score,
-                'connectivity_score': connectivity_score,
-                'cost_score': cost_score,
-                'final_multiplier': optimization_multiplier
+                'current_occupancy': current_occupancy,
+                'target_occupancy': target_occupancy,
+                'frequency_adjustment': frequency_adjustment,
+                'justification': justification,
+                'passengers_per_day': metrics.passengers_per_day,
+                'cost_per_passenger': metrics.cost_per_passenger
             }
         }
     
     def generate_recommendations(self):
-        """Generate specific recommendations for each route"""
-        print("🧠 Generating optimization recommendations...")
+        """Generate specific recommendations for each route with cost-conscious approach"""
+        print("🧠 Generating cost-conscious optimization recommendations...")
         self.recommendations = []
         
         for route_num in self.routes.keys():
@@ -414,33 +432,54 @@ class SmartBusOptimizer:
             freq_change_offpeak = ((optimized['frequency_offpeak'] - current['frequency_offpeak']) / current['frequency_offpeak']) * 100
             trips_change = optimized['daily_trips'] - current['daily_trips']
             
-            # Determine recommendation type
-            if abs(freq_change_peak) < 5 and abs(freq_change_offpeak) < 5:
-                recommendation_type = "maintain_current"
-                action = "Keep Current Schedule"
-                reason = "Current frequency is optimal"
-            elif freq_change_peak < -15 or freq_change_offpeak < -15:
+            # Get optimization justification
+            optimization_factors = optimized['optimization_factors']
+            justification = optimization_factors['justification']
+            
+            # Determine recommendation type based on the optimization results
+            if trips_change > 5:
                 recommendation_type = "increase_frequency"
                 action = "Increase Frequency"
-                reason = f"High demand ({metrics.passengers_per_day:.0f} passengers/day) and occupancy ({metrics.occupancy_rate:.1%})"
-            elif freq_change_peak > 25 or freq_change_offpeak > 25:
-                recommendation_type = "decrease_frequency"
+                reason = f"Route is {justification} (occupancy: {metrics.occupancy_rate:.1%}, {metrics.passengers_per_day:.0f} passengers/day)"
+            elif trips_change < -5:
+                recommendation_type = "decrease_frequency" 
                 action = "Reduce Frequency"
-                reason = f"Low utilization ({metrics.passengers_per_day:.0f} passengers/day, cost €{metrics.cost_per_passenger:.2f}/passenger)"
+                reason = f"Route is {justification} (occupancy: {metrics.occupancy_rate:.1%}, cost: €{metrics.cost_per_passenger:.2f}/passenger)"
+            elif abs(trips_change) <= 5:
+                recommendation_type = "maintain_current"
+                action = "Keep Current Schedule"
+                reason = f"Route operates in optimal range (occupancy: {metrics.occupancy_rate:.1%})"
             else:
                 recommendation_type = "adjust_frequency"
                 action = "Fine-tune Frequency"
-                reason = "Optimize for better efficiency"
+                reason = "Minor optimization needed"
             
-            # Special cases
-            if metrics.passengers_per_day < 20:
+            # Special cases for very problematic routes
+            if metrics.passengers_per_day < 15:
                 recommendation_type = "consider_cancellation"
                 action = "Consider Route Cancellation"
-                reason = f"Very low ridership ({metrics.passengers_per_day:.0f} passengers/day)"
-            elif len(self.routes[route_num]) < 5 and metrics.passengers_per_day < 50:
+                reason = f"Extremely low ridership ({metrics.passengers_per_day:.0f} passengers/day, €{metrics.cost_per_passenger:.2f}/passenger)"
+            elif metrics.cost_per_passenger > 10:
+                recommendation_type = "major_restructure"
+                action = "Major Route Restructure Needed"
+                reason = f"Unsustainable cost (€{metrics.cost_per_passenger:.2f}/passenger)"
+            elif len(self.routes[route_num]) < 5 and metrics.passengers_per_day < 40:
                 recommendation_type = "merge_with_other"
-                action = "Consider Merging with Adjacent Route"
-                reason = "Short route with low demand could be combined"
+                action = "Consider Merging with Adjacent Route"  
+                reason = "Short route with low demand - merger could improve efficiency"
+            
+            # Calculate passenger impact more realistically
+            service_change_ratio = optimized['daily_trips'] / current['daily_trips'] if current['daily_trips'] > 0 else 1
+            # Better service typically increases ridership by 10-30%, worse service decreases by 10-20%
+            if service_change_ratio > 1.1:  # Significantly more service
+                ridership_growth = 0.2 * (service_change_ratio - 1)  # Up to 20% growth
+            elif service_change_ratio < 0.9:  # Significantly less service
+                ridership_decline = 0.15 * (1 - service_change_ratio)  # Up to 15% decline
+                ridership_growth = -ridership_decline
+            else:
+                ridership_growth = 0  # No significant change
+            
+            passenger_impact = metrics.passengers_per_day * (1 + ridership_growth)
             
             self.recommendations.append({
                 'route': route_num,
@@ -454,10 +493,17 @@ class SmartBusOptimizer:
                     'trips_change': trips_change
                 },
                 'cost_impact': trips_change * 25,  # €25 per trip
-                'passenger_impact': metrics.passengers_per_day * (1 + (trips_change / current['daily_trips']) * 0.3) if current['daily_trips'] > 0 else 0
+                'passenger_impact': passenger_impact
             })
         
-        print(f"   ✅ Generated {len(self.recommendations)} recommendations")
+        print(f"   ✅ Generated {len(self.recommendations)} cost-conscious recommendations")
+        
+        # Print summary of recommendation types
+        rec_summary = {}
+        for rec in self.recommendations:
+            rec_summary[rec['type']] = rec_summary.get(rec['type'], 0) + 1
+        print(f"   📈 Recommendation breakdown: {dict(rec_summary)}")
+    
     
     def print_before_after_analysis(self):
         """Print comprehensive before/after comparison"""
