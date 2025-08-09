@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   otp_build:
     image: opentripplanner/opentripplanner:latest
@@ -13,13 +11,11 @@ services:
     command: --build --save
     # The container will exit after the build is complete.
 
-  otp_server:
+  otp_backend:
     image: opentripplanner/opentripplanner:latest
-    container_name: otp_server
-    profiles:
-      - serve
+    container_name: otp_backend
     ports:
-      - "8080:8080"
+      - "8080:8080" # Expose backend on port 9966 of the device
     volumes:
       - ../../vgn:/var/opentripplanner
     environment:

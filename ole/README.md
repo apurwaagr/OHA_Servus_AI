@@ -14,5 +14,5 @@ docker compose --profile build up
 To build the routing graph from your data files, run the `otp_builder` service. This is a one-time process and can be resource-intensive.
 
 ```sh
-docker compose --profile serve up -ds
+docker compose --profile serve up -d
 ```
