@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  otp_build:
+    image: opentripplanner/opentripplanner:latest
+    container_name: otp_builder
+    profiles:
+      - build
+    volumes:
+      - ../../vgn:/var/opentripplanner
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx8g
+    command: --build --save
+    # The container will exit after the build is complete.
+
+  otp_server:
+    image: opentripplanner/opentripplanner:latest
+    container_name: otp_server
+    profiles:
+      - serve
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../vgn:/var/opentripplanner
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx8g
+    command: --load --serve
+    # This container will run in the background.
