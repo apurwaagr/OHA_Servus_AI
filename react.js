@@ -62,54 +62,12 @@ const GTFSOTPApp = () => {
 
     setLoading(true);
 
-    // Save to recent searches
-    const search = { origin, destination, timestamp: Date.now() };
-    const updated = [search, ...recentSearches.filter(s =>
       s.origin !== origin || s.destination !== destination
     )].slice(0, 5);
     setRecentSearches(updated);
     localStorage.setItem('recentSearches', JSON.stringify(updated));
 
-    // Real API call to OTP backend
-    try {
-      // OTP expects lat/lon or place names. Here we use the text input directly as 'fromPlace' and 'toPlace'.
-      const params = new URLSearchParams({
-        fromPlace: origin,
-        toPlace: destination,
-        date: departureDate,
-        time: departureTime,
-        mode: mode,
-        locale: 'de',
-        numItineraries: 3
-      });
-      const response = await fetch('http://localhost:8080/otp/routers/default/plan?' + params.toString());
-      if (!response.ok) throw new Error('Fehler bei der Verbindung zum Routenplaner');
-      const data = await response.json();
-      // Map OTP response to UI format
-      const newRoutes = (data.plan?.itineraries || []).map((it, idx) => ({
-        id: idx + 1,
-        duration: Math.round(it.duration / 60),
-        transfers: it.transfers,
-        departureTime: new Date(it.startTime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-        arrivalTime: new Date(it.endTime).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-        fare: data.fare ? `${(data.fare?.fare?.regular?.cents / 100).toFixed(2)} €` : '',
-        legs: it.legs.map(leg => ({
-          mode: leg.mode,
-          from: leg.from.name,
-          to: leg.to.name,
-          duration: Math.round(leg.duration / 60),
-          distance: leg.distance ? `${Math.round(leg.distance)} m` : undefined,
-          routeNumber: leg.route?.shortName,
-          operator: leg.agency?.name
-        }))
-      }));
-      setRoutes(newRoutes);
-    } catch (err) {
-      alert(err.message || 'Unbekannter Fehler');
-      setRoutes([]);
-    } finally {
-      setLoading(false);
-    }
+
   };
 
   const addMinutes = (time, minutes) => {
@@ -190,7 +148,7 @@ const GTFSOTPApp = () => {
             </nav>
 
             {/* Mobile Menu Button */}
-            <button
+
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
@@ -225,10 +183,7 @@ const GTFSOTPApp = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-3 px-1 border-b-3 font-medium text-sm transition-all whitespace-nowrap ${activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
+
               >
                 {tab.icon}
                 <span>{tab.label}</span>
@@ -462,7 +417,7 @@ const GTFSOTPApp = () => {
                     className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <div
+
                         onClick={() => loadSearch(fav)}
                         className="flex items-center space-x-3 flex-1 cursor-pointer"
                       >
