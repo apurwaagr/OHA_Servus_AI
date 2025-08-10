@@ -1,0 +1,16 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type
+39-561-j25-1,VGN,561,Neumarkt Bahnhof  -  Pölling  -  Rittershof und zurück,Stadtbus,3
+39-562-j25-1,VGN,562,Neumarkt Bahnhof  -  Holzheim und zurück,Stadtbus,3
+39-563-j25-1,VGN,563,Neumarkt Bahnhof  -  Altenhof und zurück,Stadtbus,3
+39-564-j25-1,VGN,564,Neumarkt Bahnhof  -  Mühlen  -  Kohlenbrunnermühle (und zurück),Stadtbus,3
+39-565-j25-1,VGN,565,Neumarkt Bahnhof  -  Wolfstein und zurück,Stadtbus,3
+39-565-j25-2,VGN,565,Neumarkt Bahnhof - Zurück,Stadtbus,3
+39-566-j25-1,VGN,566,Neumarkt Bahnhof  -  Höhenberg und zurück,Stadtbus,3
+39-567-j25-1,VGN,567,Neumarkt Bahnhof  -  Lähr und zurück,Stadtbus,3
+39-568-j25-1,VGN,568,Neumarkt Bahnhof  -  Hasenheide und zurück,Stadtbus,3
+39-569-j25-1,VGN,569,Neumarkt Bahnhof  -  Industriegebiet  -  Woffenbach  -  Stauf (und zurück),Stadtbus,3
+39-569-j25-3,VGN,569,Neumarkt Bahnhof  -  Industriegebiet  -  Woffenbach  -  Stauf Baustellenfahrplan: gültig von 28.05.2025 bis vsl. 30.11.2025,Stadtbus,3
+39-570-j25-1,VGN,570,Neumarkt Bahnhof  -  Woffenbach und zurück,Stadtbus,3
+39-573-j25-1,VGN,573,Neumarkt Bahnhof - Koppenmühle und zurück,Stadtbus,3
+39-574-j25-1,VGN,574,RUFBUS Neumarkt Bahnhof - Ischhofen und zurück,Rufbus,3
+39-575-j25-1,VGN,575,RUFBUS Neumarkt Bahnhof  -  Pelchenhofen und zurück,Rufbus,3

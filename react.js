@@ -61,62 +61,13 @@ const GTFSOTPApp = () => {
     }
 
     setLoading(true);
-    
-    // Save to recent searches
-    const search = { origin, destination, timestamp: Date.now() };
-    const updated = [search, ...recentSearches.filter(s => 
+
       s.origin !== origin || s.destination !== destination
     )].slice(0, 5);
     setRecentSearches(updated);
     localStorage.setItem('recentSearches', JSON.stringify(updated));
 
-    // Simulate API call to OTP backend
-    setTimeout(() => {
-      const mockRoutes = [
-        {
-          id: 1,
-          duration: 35,
-          transfers: 1,
-          departureTime: departureTime,
-          arrivalTime: addMinutes(departureTime, 35),
-          fare: '3,20 €',
-          legs: [
-            { mode: 'WALK', from: origin, to: 'Haltestelle Rathaus', duration: 5, distance: '400m' },
-            { mode: 'BUS', from: 'Haltestelle Rathaus', to: 'Bahnhof Neumarkt', duration: 20, routeNumber: 'Linie 3', operator: 'Stadtbus Neumarkt' },
-            { mode: 'RAIL', from: 'Bahnhof Neumarkt', to: 'Nürnberg Hbf', duration: 8, routeNumber: 'S3', operator: 'DB Regio' },
-            { mode: 'WALK', from: 'Nürnberg Hbf', to: destination, duration: 2, distance: '150m' }
-          ]
-        },
-        {
-          id: 2,
-          duration: 42,
-          transfers: 0,
-          departureTime: addMinutes(departureTime, 5),
-          arrivalTime: addMinutes(departureTime, 47),
-          fare: '2,80 €',
-          legs: [
-            { mode: 'WALK', from: origin, to: 'Haltestelle Klostergasse', duration: 8, distance: '650m' },
-            { mode: 'BUS', from: 'Haltestelle Klostergasse', to: 'Zielhaltestelle', duration: 30, routeNumber: 'Linie 1', operator: 'Stadtbus Neumarkt' },
-            { mode: 'WALK', from: 'Zielhaltestelle', to: destination, duration: 4, distance: '300m' }
-          ]
-        },
-        {
-          id: 3,
-          duration: 28,
-          transfers: 2,
-          departureTime: addMinutes(departureTime, 10),
-          arrivalTime: addMinutes(departureTime, 38),
-          fare: '3,50 €',
-          legs: [
-            { mode: 'BICYCLE', from: origin, to: 'Bahnhof Neumarkt', duration: 12, distance: '3.2km' },
-            { mode: 'RAIL', from: 'Bahnhof Neumarkt', to: 'Regensburg Hbf', duration: 15, routeNumber: 'RE 50', operator: 'DB Regio' },
-            { mode: 'WALK', from: 'Regensburg Hbf', to: destination, duration: 1, distance: '100m' }
-          ]
-        }
-      ];
-      setRoutes(mockRoutes);
-      setLoading(false);
-    }, 1500);
+
   };
 
   const addMinutes = (time, minutes) => {
@@ -175,7 +126,7 @@ const GTFSOTPApp = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Desktop Menu */}
             <nav className="hidden md:flex items-center space-x-6">
               <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
@@ -197,7 +148,7 @@ const GTFSOTPApp = () => {
             </nav>
 
             {/* Mobile Menu Button */}
-            <button 
+
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
@@ -232,11 +183,7 @@ const GTFSOTPApp = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-3 px-1 border-b-3 font-medium text-sm transition-all whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+
               >
                 {tab.icon}
                 <span>{tab.label}</span>
@@ -266,7 +213,7 @@ const GTFSOTPApp = () => {
                         className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       />
                     </div>
-                    
+
                     <button
                       onClick={swapLocations}
                       className="absolute right-3 top-11 z-10 bg-white border-2 border-gray-200 rounded-full p-2 hover:bg-gray-50 transition-all shadow-md"
@@ -301,7 +248,7 @@ const GTFSOTPApp = () => {
                       className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
-                  
+
                   <div className="relative">
                     <Clock className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
                     <input
@@ -311,7 +258,7 @@ const GTFSOTPApp = () => {
                       className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
-                  
+
                   <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value)}
@@ -470,7 +417,7 @@ const GTFSOTPApp = () => {
                     className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <div 
+
                         onClick={() => loadSearch(fav)}
                         className="flex items-center space-x-3 flex-1 cursor-pointer"
                       >

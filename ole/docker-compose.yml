@@ -1,0 +1,23 @@
+services:
+  otp_build:
+    image: opentripplanner/opentripplanner:latest
+    container_name: otp_builder
+    profiles:
+      - build
+    volumes:
+      - ../../neumarkt:/var/opentripplanner
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx8g
+    command: --build --save
+    # The container will exit after the build is complete.
+
+  otp_backend:
+    image: opentripplanner/opentripplanner:latest
+    container_name: otp_backend
+    ports:
+      - "8080:8080" # Expose backend on port 9966 of the device
+    volumes:
+      - ../../neumarkt:/var/opentripplanner
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx8g
+    command: --load --serve # This container will run in the background.
