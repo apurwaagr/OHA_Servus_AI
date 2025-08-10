@@ -68,7 +68,7 @@ def plot_lines_with_highlight(
     highlight=None
 ):
     """
-    Like plot_lines, but all lines are grey except those in highlight (colored).
+    Like plot_lines, but all lines are black except those in highlight (red).
     highlight: list of labels to highlight (default: []).
     """
     if not lines_dict:
@@ -86,19 +86,14 @@ def plot_lines_with_highlight(
 
     m = folium.Map(location=(center_lat, center_lon), zoom_start=zoom_start, tiles=tiles)
 
-    palette = cycle([
-        "blue","red","green","purple","orange","darkred","lightred","beige","darkblue",
-        "darkgreen","cadetblue","darkpurple","pink","lightblue","lightgreen","black"
-    ])
-
     for label, pts in lines_dict.items():
         pts_clean = [(float(lat), float(lon)) for lat, lon in pts]
         if label in highlight:
-            color = next(palette)
+            color = "red"
             weight = 4
             opacity = 1.0
         else:
-            color = "lightgray"
+            color = "black"
             weight = 3
             opacity = 0.7
 
@@ -188,6 +183,9 @@ def get_multiple_routes_positions(gtfs_data, route_short_names, skip_stop_ids=No
     result = {}
     for short_name in route_short_names:
         result[short_name] = get_route_stop_positions_by_short_name(gtfs_data, short_name, skip_stop_ids=skip_stop_ids)
+    if addedRoutes is not None:
+        for short_name, stop_ids in addedRoutes.items():
+            result[short_name] = get_ordered_positions(gtfs_data, stop_ids)
     if addedRoutes is not None:
         for short_name, stop_ids in addedRoutes.items():
             result[short_name] = get_ordered_positions(gtfs_data, stop_ids)
