@@ -1,5 +1,3 @@
-
-
 import folium
 from itertools import cycle
 
@@ -58,6 +56,64 @@ def plot_lines(lines_dict, zoom_start=13, outfile="lines_map.html", tiles="OpenS
     # Fit to all points
     m.fit_bounds([min(all_pts, key=lambda p: p[0]),
                   max(all_pts, key=lambda p: p[0])])  # folium accepts two corners just fine
+
+    m.save(outfile)
+    return m
+
+def plot_lines_with_highlight(
+    lines_dict, 
+    zoom_start=13, 
+    outfile="lines_map.html", 
+    tiles="OpenStreetMap", 
+    highlight=None
+):
+    """
+    Like plot_lines, but all lines are grey except those in highlight (colored).
+    highlight: list of labels to highlight (default: []).
+    """
+    if not lines_dict:
+        raise ValueError("lines_dict is empty.")
+
+    if highlight is None:
+        highlight = []
+
+    all_pts = []
+    for pts in lines_dict.values():
+        all_pts.extend((float(lat), float(lon)) for lat, lon in pts)
+
+    center_lat = sum(p[0] for p in all_pts) / len(all_pts)
+    center_lon = sum(p[1] for p in all_pts) / len(all_pts)
+
+    m = folium.Map(location=(center_lat, center_lon), zoom_start=zoom_start, tiles=tiles)
+
+    palette = cycle([
+        "blue","red","green","purple","orange","darkred","lightred","beige","darkblue",
+        "darkgreen","cadetblue","darkpurple","pink","lightblue","lightgreen","black"
+    ])
+
+    for label, pts in lines_dict.items():
+        pts_clean = [(float(lat), float(lon)) for lat, lon in pts]
+        if label in highlight:
+            color = next(palette)
+            weight = 4
+            opacity = 1.0
+        else:
+            color = "lightgray"
+            weight = 3
+            opacity = 0.7
+
+        layer = folium.FeatureGroup(name=label, show=True)
+        folium.PolyLine(pts_clean, color=color, weight=weight, opacity=opacity, tooltip=label).add_to(layer)
+
+        if pts_clean:
+            folium.CircleMarker(pts_clean[0], radius=4, tooltip=f"{label} start").add_to(layer)
+            folium.CircleMarker(pts_clean[-1], radius=4, tooltip=f"{label} end").add_to(layer)
+
+        layer.add_to(m)
+
+    folium.LayerControl(collapsed=False).add_to(m)
+    m.fit_bounds([min(all_pts, key=lambda p: p[0]),
+                  max(all_pts, key=lambda p: p[0])])
 
     m.save(outfile)
     return m
