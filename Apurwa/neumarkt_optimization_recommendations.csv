@@ -1,0 +1,11 @@
+route,recommendation_type,action,reasoning,priority,implementation_cost,expected_ridership_change,payback_period_days
+561,increase_frequency,Increase Frequency,High demand (2548 passengers/day) and occupancy (79.6%),High,750,573.3000000000002,0.5232862375719517
+562,increase_frequency,Increase Frequency,High demand (2254 passengers/day) and occupancy (70.4%),High,375,253.5862500000003,0.5915147213226263
+563,increase_frequency,Increase Frequency,High demand (2183 passengers/day) and occupancy (68.2%),High,425,278.3325,0.6107802717972209
+564,increase_frequency,Increase Frequency,High demand (1934 passengers/day) and occupancy (80.6%),High,850,657.5259999999998,0.5170898185014738
+565,increase_frequency,Increase Frequency,High demand (2087 passengers/day) and occupancy (87.0%),High,1050,876.6239999999998,0.47911077041011896
+566,increase_frequency,Increase Frequency,High demand (1798 passengers/day) and occupancy (74.9%),High,500,359.6400000000001,0.5561116672227782
+567,increase_frequency,Increase Frequency,High demand (1649 passengers/day) and occupancy (100.0%),High,1550,1533.2910000000002,0.40435898991124314
+568,increase_frequency,Increase Frequency,High demand (1772 passengers/day) and occupancy (100.0%),High,1750,1860.915,0.3761590400421298
+569,increase_frequency,Increase Frequency,High demand (2088 passengers/day) and occupancy (100.0%),High,1850,2317.9020000000014,0.31925422213708754
+570,increase_frequency,Increase Frequency,High demand (2143 passengers/day) and occupancy (100.0%),High,1750,2250.57,0.31103231625765915
