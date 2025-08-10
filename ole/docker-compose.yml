@@ -5,7 +5,7 @@ services:
     profiles:
       - build
     volumes:
-      - ../../vgn:/var/opentripplanner
+      - ../../neumarkt:/var/opentripplanner
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx8g
     command: --build --save
@@ -17,8 +17,7 @@ services:
     ports:
       - "8080:8080" # Expose backend on port 9966 of the device
     volumes:
-      - ../../vgn:/var/opentripplanner
+      - ../../neumarkt:/var/opentripplanner
     environment:
       - JAVA_TOOL_OPTIONS=-Xmx8g
-    command: --load --serve
-    # This container will run in the background.
+    command: --load --serve # This container will run in the background.
