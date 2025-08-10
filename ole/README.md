@@ -25,3 +25,13 @@ docker compose --profile serve up -d
 
 # Data Analysis and Plotting
 
+## Setup
+```sh
+conda env create -f environment.yml
+```
+
+## Exploration
+
+Chekout Notebooks
+
+#
