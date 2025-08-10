@@ -1,3 +1,9 @@
+#
+
+
+# OTS Project Investigateion
+Research 
+
 ## How to Build and Run
 
 This project uses Docker Compose to automate the process of building the OpenTripPlanner graph and running the server.
@@ -16,3 +22,6 @@ To build the routing graph from your data files, run the `otp_builder` service. 
 ```sh
 docker compose --profile serve up -d
 ```
+
+# Data Analysis and Plotting
+
